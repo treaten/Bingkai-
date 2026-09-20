@@ -1,0 +1,51 @@
+name: Build APK Bingkai
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ekstrak proyek dari zip
+        run: unzip -q Bingkai_Android_v3.zip -d project
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Chaquopy (Python di dalam APK) butuh Python 3.11 di mesin build.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.4"
+
+      - name: Build APK
+        working-directory: project/bingkai_android_v3
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Simpan APK sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bingkai-APK
+          path: project/bingkai_android_v3/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Terbitkan APK di halaman Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: Bingkai APK (build ${{ github.run_number }})
+          files: project/bingkai_android_v3/app/build/outputs/apk/debug/app-debug.apk
